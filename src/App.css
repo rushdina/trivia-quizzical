@@ -1,0 +1,27 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Header Start page */
+.header-start {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh; /* middle of page */
+}
+
+/* Header Questions page */
+.header-questions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  height: 80px; /* top only */
+  padding: 10px 20px;
+}
+
+.header-questions h1 {
+  font-size: 1.5rem;
+}
