@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { nanoid } from "nanoid";
+import he from "he";
 
 export default function Questions({ goToStart }) {
   const [token, setToken] = useState();
-  const [checked] = useState(false);
-  const [questions, setQuestions] = useState([]);
+  const [checked, setChecked] = useState(false);
+  const [questions, setQuestions] = useState([]); // array of qns obj
+  const [score, setScore] = useState(0);
 
-  // 1. Fetch session token ONCE on load (to prevent duplicate questions)
+  // 1. Fetch session token ONCE on mount (to prevent duplicate questions)
   useEffect(() => {
     async function fetchToken() {
       try {
@@ -37,71 +39,79 @@ export default function Questions({ goToStart }) {
   }, []);
 
   // 2. Fetch 5 multiple choice questions from any categories (mixed) with SAME token
-  useEffect(() => {
-    if (!token) return; // exit func
-    async function fetchQuestions() {
-      try {
-        const questionRes = await fetch(
-          `https://opentdb.com/api.php?amount=5&type=multiple&token=${token}`,
-        );
+  const fetchQuestions = useCallback(async () => {
+    // Reset states when play again
+    setChecked(false);
+    setScore(0);
 
-        if (!questionRes.ok) {
-          throw new Error(`Failed to fetch questions: ${questionRes.status}`);
-        }
+    try {
+      const questionRes = await fetch(
+        `https://opentdb.com/api.php?amount=5&type=multiple&token=${token}`,
+      );
 
-        const questionData = await questionRes.json();
-
-        // Reset session token that has returned all questions because token empty
-        if (questionData.response_code === 4) {
-          await fetch(
-            `https://opentdb.com/api.php?command=reset&token=${token}`,
-          ); // reset = same token, all questions refreshed to fetch them again
-          return fetchQuestions();
-        }
-
-        console.log(questionData);
-        /* 
-        {
-          response_code: 0,
-          results: [
-            {
-              type: "multiple",
-              difficulty: "hard",
-              category: "Art",
-              question: "",
-              correct_answer: "",
-              incorrect_answers: ["", "", ""],
-            },
-            {},
-          ];
-        }
-        */
-
-        // Need to format each question obj into quiz format
-        const formattedQuestionsArr = questionData.results.map(
-          (questionObj) => {
-            formatQuestionObj(questionObj);
-          },
-        );
-        console.log(formattedQuestionsArr);
-        setQuestions(formattedQuestionsArr);
-
-        // setQuestions(formattedQuestions);
-      } catch (error) {
-        console.error(error);
+      if (!questionRes.ok) {
+        throw new Error(`Failed to fetch questions: ${questionRes.status}`);
       }
-    }
 
-    fetchQuestions();
+      const questionData = await questionRes.json();
+
+      // Reset session token if all questions used (token empty)
+      if (questionData.response_code === 4) {
+        await fetch(`https://opentdb.com/api.php?command=reset&token=${token}`); // reset = same token, all questions refreshed to fetch them again
+        return fetchQuestions();
+      }
+
+      console.log(questionData);
+      /* 
+      {
+        response_code: 0,
+        results: [
+          {
+            type: "multiple",
+            difficulty: "hard",
+            category: "Art",
+            question: "",
+            correct_answer: "",
+            incorrect_answers: ["", "", ""],
+          },
+          {},
+        ];
+      }
+      */
+
+      // Need to format each question obj into quiz format
+      const formattedQuestionsArr = questionData.results.map((questionObj) => {
+        return formatQuestionObj(questionObj);
+      });
+      console.log(formattedQuestionsArr);
+      setQuestions(formattedQuestionsArr);
+
+      // setQuestions(formattedQuestions);
+    } catch (error) {
+      console.error(error);
+    }
   }, [token]);
 
-  // Convert individual question obj from API into quiz format
+  useEffect(() => {
+    if (!token) return; // exit func
+    fetchQuestions();
+  }, [token, fetchQuestions]);
+
+  // Format individual question obj from API into quiz format + shuffle answer
   function formatQuestionObj(questionObj) {
     // All answers in array
     const answersArr = [
-      { id: nanoid(), text: questionObj.correct_answer, isCorrect: true },
+      {
+        id: nanoid(),
+        text: he.decode(questionObj.correct_answer),
+        isCorrect: true,
+      },
       ...questionObj.incorrect_answers.map((incorrectAnswer) => {
-        return { id: nanoid(), text: incorrectAnswer, isCorrect: false };
+        return {
+          id: nanoid(),
+          text: he.decode(incorrectAnswer),
+          isCorrect: false,
+        };
       }), // .map return new array which becomes nested array, then spread operator expands array items which flattens answersArr
     ];
 
@@ -123,50 +133,101 @@ export default function Questions({ goToStart }) {
 
     const formattedQuestionObj = {
       id: nanoid(),
-      question: questionObj.question,
+      question: he.decode(questionObj.question),
       answers: answersArr, // shuffled answers
       selectedAnswer: null,
     };
 
     return formattedQuestionObj;
+
+    /*
+{
+  id: "nanoid",
+  question: "What is 2+2?",
+  answers: [
+    { id: "a1", text: "3", isCorrect: false },
+    { id: "a2", text: "4", isCorrect: true },
+    ...
+  ],
+  selectedAnswer: "a2"
+}
+    */
   }
 
-  // onChange user selecting answer
+  // Handle onChange selecting an answer
   function handleSelectAnswer(questionId, answerText) {
     if (checked) return;
 
     setQuestions((prevArr) => {
-      prevArr.map((questionObj) => {
-        questionObj.id === questionId
+      return prevArr.map((questionObj) => {
+        return questionObj.id === questionId
           ? { ...questionObj, selectedAnswer: answerText }
           : questionObj;
       }); // update value
     });
   }
 
+  // Check answers text with isCorrect boolean
+  function checkAnswers() {
+    let count = 0;
+
+    questions.forEach((questionObj) => {
+      const selected = questionObj.answers.find(
+        (a) => a.text === questionObj.selectedAnswer,
+      ); // selected = { id: "a2", text: "4", isCorrect: true }
+
+      // if selected exists, then check if isCorrect is true, increment count
+      if (selected?.isCorrect) count++;
+    });
+
+    setScore(count);
+    setChecked(true);
+  }
+
+  // Fetch new set of questions
+  function playAgain() {
+    fetchQuestions();
+  }
+
+  // Answer class for checked styling
+  function getCheckedAnswerClass(answer, question) {
+    if (!checked) return ""; // no coloring before checking
+
+    if (answer.isCorrect) return "correct-green"; // correct answers green
+    if (question.selectedAnswer === answer.text) return "wrong-red"; // user's wrong choice red
+
+    return ""; // all other unselected answers stay neutral
+  }
+
   return (
     <>
       <section>
-        <div className="question-block">
+        <div className="questions-container">
           {questions.map((questionObj) => {
             return (
               <div key={questionObj.id} className="question-block">
                 <h2>{questionObj.question}</h2>
                 <div className="answers">
-                  {questionObj.answers.map((answer) => {
+                  {questionObj.answers.map((answerObj) => {
                     return (
-                      <label key={answer.id}>
+                      <label
+                        key={answerObj.id}
+                        // className={`answer-label ${checked ? (answer.isCorrect ? "correct-green" : questionObj.selectedAnswer === answer.text ? "wrong" : "") : ""}`}
+                        className={`answer-label ${getCheckedAnswerClass(answerObj, questionObj)}`}
+                      >
                         <input
                           type="radio"
                           name={questionObj.id}
-                          value={answer.text}
-                          checked={questionObj.selectedAnswer === answer.text}
+                          value={answerObj.text}
+                          checked={
+                            questionObj.selectedAnswer === answerObj.text
+                          }
                           onChange={() =>
-                            handleSelectAnswer(questionObj.id, answer.text)
+                            handleSelectAnswer(questionObj.id, answerObj.text)
                           }
                           disabled={checked}
                         />
-                        <span className="answer-btn">{answer.text}</span>
+                        <span>{answerObj.text}</span>
                       </label>
                     );
                   })}
@@ -176,8 +237,14 @@ export default function Questions({ goToStart }) {
           })}
         </div>
         <div className="controls">
-          <button>{checked ? "Check answers" : "Play again"}</button>
-          {checked && <p>You scored 3/{questions.length}!</p>}
+          <button onClick={checked ? playAgain : checkAnswers}>
+            {checked ? "Play again" : "Check answers"}
+          </button>
+          {checked && (
+            <p>
+              You scored {score}/{questions.length}!
+            </p>
+          )}
           <button onClick={goToStart}>Home</button>
         </div>
       </section>
