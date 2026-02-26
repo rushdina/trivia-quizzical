@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 export default function Questions({ goToStart }) {
   const [token, setToken] = useState();
   const [checked] = useState(false);
-  // const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState([]);
 
   // 1. Fetch session token ONCE on load (to prevent duplicate questions)
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function Questions({ goToStart }) {
         }
 
         const tokenData = await tokenRes.json(); // parse json str to js obj
-        console.log(tokenData); // obj
+        console.log(tokenData);
         /*
          {
            response_code: 0,
@@ -59,7 +59,7 @@ export default function Questions({ goToStart }) {
           return fetchQuestions();
         }
 
-        console.log(questionData); // obj
+        console.log(questionData);
         /* 
         {
           response_code: 0,
@@ -78,10 +78,13 @@ export default function Questions({ goToStart }) {
         */
 
         // Need to format each question obj into quiz format
-        const formattedQuestions = questionData.results.map((question) => {
-          formatQuestion(question);
-        });
-        console.log(formattedQuestions);
+        const formattedQuestionsArr = questionData.results.map(
+          (questionObj) => {
+            formatQuestionObj(questionObj);
+          },
+        );
+        console.log(formattedQuestionsArr);
+        setQuestions(formattedQuestionsArr);
 
         // setQuestions(formattedQuestions);
       } catch (error) {
@@ -93,7 +96,7 @@ export default function Questions({ goToStart }) {
   }, [token]);
 
   // Convert individual question obj from API into quiz format
-  function formatQuestion(questionObj) {
+  function formatQuestionObj(questionObj) {
     // All answers in array
     const answersArr = [
       { id: nanoid(), text: questionObj.correct_answer, isCorrect: true },
@@ -122,25 +125,59 @@ export default function Questions({ goToStart }) {
       id: nanoid(),
       question: questionObj.question,
       answers: answersArr, // shuffled answers
-      selectAnswerId: null,
+      selectedAnswer: null,
     };
 
-    console.log(formattedQuestionObj);
-
     return formattedQuestionObj;
+  }
+
+  // onChange user selecting answer
+  function handleSelectAnswer(questionId, answerText) {
+    if (checked) return;
+
+    setQuestions((prevArr) => {
+      prevArr.map((questionObj) => {
+        questionObj.id === questionId
+          ? { ...questionObj, selectedAnswer: answerText }
+          : questionObj;
+      }); // update value
+    });
   }
 
   return (
     <>
       <section>
         <div className="question-block">
-          {/* <label>
-            <input type="radio" name="" value="" checked="" onChange="{}" />
-            question
-          </label> */}
+          {questions.map((questionObj) => {
+            return (
+              <div key={questionObj.id} className="question-block">
+                <h2>{questionObj.question}</h2>
+                <div className="answers">
+                  {questionObj.answers.map((answer) => {
+                    return (
+                      <label key={answer.id}>
+                        <input
+                          type="radio"
+                          name={questionObj.id}
+                          value={answer.text}
+                          checked={questionObj.selectedAnswer === answer.text}
+                          onChange={() =>
+                            handleSelectAnswer(questionObj.id, answer.text)
+                          }
+                          disabled={checked}
+                        />
+                        <span className="answer-btn">{answer.text}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
         <div className="controls">
           <button>{checked ? "Check answers" : "Play again"}</button>
+          {checked && <p>You scored 3/{questions.length}!</p>}
           <button onClick={goToStart}>Home</button>
         </div>
       </section>
