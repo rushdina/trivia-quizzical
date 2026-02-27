@@ -11,40 +11,37 @@ export default function Questions({ goToStart }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null); // null because currenty no error
 
-  // 1. Fetch session token ONCE on mount (to prevent duplicate questions)
-  useEffect(() => {
-    async function fetchToken() {
-      setLoading(true); // show spinner while fetching token
-      setError(null); // clear any previous errors
+  // 1. Fetch new session token (to prevent duplicate questions)
+  const fetchToken = useCallback(async () => {
+    setLoading(true); // show spinner while fetching token
+    setError(null); // clear any previous errors
 
-      try {
-        const tokenRes = await fetch(
-          "https://opentdb.com/api_token.php?command=request",
-        ); // request = new token
+    try {
+      const tokenRes = await fetch(
+        "https://opentdb.com/api_token.php?command=request",
+      ); // request = new token
 
-        if (!tokenRes) {
-          throw new Error(`Failed to get token: ${tokenRes.status}`);
-        }
-
-        const tokenData = await tokenRes.json(); // parse json str to js obj
-        console.log(tokenData);
-        /*
-         {
-           response_code: 0,
-           response_message: "Token Generated Successfully!",
-           token: "ed2f..."
-         }
-        */
-        setToken(tokenData.token); // string
-      } catch (error) {
-        console.error(error);
-        setError("Failed to get session token. Please try again.");
-      } finally {
-        setLoading(false); // spinner disappears even if error happens
+      if (!tokenRes.ok) {
+        throw new Error(`Failed to get token: ${tokenRes.status}`);
       }
-    }
 
-    fetchToken();
+      const tokenData = await tokenRes.json(); // parse json str to js obj
+      console.log("Token data:", tokenData);
+      /*
+        {
+          response_code: 0,
+          response_message: "Token Generated Successfully!",
+          token: "ed2f..."
+        }
+      */
+      setToken(tokenData.token); // string
+      return tokenData.token; // need to return to be used when code is 3
+    } catch (error) {
+      console.error(error);
+      setError("Failed to get session token. Please try again.");
+    } finally {
+      setLoading(false); // spinner disappears even if error happens
+    }
   }, []);
 
   // 2. Fetch 5 multiple choice questions from any categories (mixed) with SAME token
@@ -55,9 +52,21 @@ export default function Questions({ goToStart }) {
     setChecked(false);
     setScore(0);
 
+    let activeToken = token;
+
+    if (!activeToken) {
+      activeToken = await fetchToken();
+    } // ensure we have a token
+
     try {
+      // Small delay to prevent rapid consecutive fetches
+      await new Promise((resolve) => {
+        console.log("Fetching questions...");
+        setTimeout(resolve, 1500);
+      }); // 1.5 second delay
+
       const questionRes = await fetch(
-        `https://opentdb.com/api.php?amount=5&type=multiple&token=${token}`,
+        `https://opentdb.com/api.php?amount=5&type=multiple&token=${activeToken}`,
       );
 
       if (!questionRes.ok) {
@@ -68,13 +77,23 @@ export default function Questions({ goToStart }) {
 
       const questionData = await questionRes.json();
 
-      // Reset session token if all questions used (token empty)
-      if (questionData.response_code === 4) {
-        await fetch(`https://opentdb.com/api.php?command=reset&token=${token}`); // reset = same token, all questions refreshed to fetch them again
-        return fetchQuestions();
+      // Token expired, request new session token
+      if (questionData.response_code === 3) {
+        console.log("Token expired. Fetching new token...");
+        await fetchToken(); // waits for new token (updates the state with setToken(), which fetchQuestions() uses.)
+        return fetchQuestions(); // retry after new token
       }
 
-      console.log(questionData);
+      // Reset session token if all questions used (token empty) so we can fetch questions again
+      if (questionData.response_code === 4) {
+        console.log("All questions used. Resetting token...");
+        await fetch(
+          `https://opentdb.com/api.php?command=reset&token=${activeToken}`,
+        ); // reset = same token refreshed, making all questions available again
+        return fetchQuestions(); // fetch again with the same token
+      }
+
+      console.log("Questions Data:", questionData);
       /* 
       {
         response_code: 0,
@@ -96,19 +115,24 @@ export default function Questions({ goToStart }) {
       const formattedQuestionsArr = questionData.results.map((questionObj) => {
         return formatQuestionObj(questionObj);
       });
-      console.log(formattedQuestionsArr);
+      console.log("Formatted Questions:", formattedQuestionsArr);
       setQuestions(formattedQuestionsArr);
 
       // setQuestions(formattedQuestions);
     } catch (error) {
       console.error(error);
-      setError("Somethine went wrong. Please try again.");
+      setError("Something went wrong. Please try again after a few seconds.");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, fetchToken]);
 
-  // Fetch questions data form API on mount after retrieving token
+  // On mount: fetch token
+  useEffect(() => {
+    fetchToken();
+  }, [fetchToken]);
+
+  // Fetch questions after retrieving token
   useEffect(() => {
     if (!token) return; // exit func
     fetchQuestions();
@@ -193,7 +217,7 @@ export default function Questions({ goToStart }) {
         (a) => a.text === questionObj.selectedAnswer,
       ); // selected = { id: "a2", text: "4", isCorrect: true }
 
-      // if selected exists, then check if isCorrect is true, increment count
+      // if selected exists, then check if selected.isCorrect is true, increment count
       if (selected?.isCorrect) count++;
     });
 
@@ -216,7 +240,7 @@ export default function Questions({ goToStart }) {
     return ""; // all other unselected answers stay neutral
   }
 
-  // early returns
+  // Early returns
   if (loading) {
     return (
       <section>
@@ -277,6 +301,17 @@ export default function Questions({ goToStart }) {
           })}
         </div>
         <div className="controls">
+          <button onClick={goToStart}>Home</button>
+          {checked && (
+            <p>
+              You scored {score}/{questions.length}!
+            </p>
+          )}
+          {!checked && (
+            <button onClick={fetchQuestions} disabled={loading}>
+              New Questions
+            </button>
+          )}
           <button
             onClick={checked ? playAgain : checkAnswers}
             disabled={
@@ -286,12 +321,6 @@ export default function Questions({ goToStart }) {
           >
             {checked ? "Play again" : "Check answers"}
           </button>
-          {checked && (
-            <p>
-              You scored {score}/{questions.length}!
-            </p>
-          )}
-          <button onClick={goToStart}>Home</button>
         </div>
       </section>
     </>
