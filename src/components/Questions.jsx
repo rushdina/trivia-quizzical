@@ -1,62 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
-import { nanoid } from "nanoid";
-import he from "he";
+import QuestionCard from "./QuestionCard.jsx";
+import { fetchToken, resetToken, fetchQuestions } from "../api/triviaAPI.js";
+import { formatQuestionObj } from "../utils/formatQuestion.js";
 import "./Questions.css";
 
 export default function Questions({ goToStart }) {
-  const [token, setToken] = useState(null); // initilized null (no token yet)
-  const [checked, setChecked] = useState(false);
+  const [token, setToken] = useState(null);
   const [questions, setQuestions] = useState([]); // array of qns obj
+  const [checkedAns, setCheckedAns] = useState(false);
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // null because currenty no error
+  const [error, setError] = useState(null);
 
-  // 1. Fetch new session token (to prevent duplicate questions)
-  const fetchToken = useCallback(async () => {
-    setLoading(true); // show spinner while fetching token
-    setError(null); // clear any previous errors
-
-    try {
-      const tokenRes = await fetch(
-        "https://opentdb.com/api_token.php?command=request",
-      ); // request = new token
-
-      if (!tokenRes.ok) {
-        throw new Error(`Failed to get token: ${tokenRes.status}`);
-      }
-
-      const tokenData = await tokenRes.json(); // parse json str to js obj
-      console.log("Token data:", tokenData);
-      /*
-        {
-          response_code: 0,
-          response_message: "Token Generated Successfully!",
-          token: "ed2f..."
-        }
-      */
-      setToken(tokenData.token); // string
-      return tokenData.token; // need to return to be used when code is 3
-    } catch (error) {
-      console.error(error);
-      setError("Failed to get session token. Please try again.");
-    } finally {
-      setLoading(false); // spinner disappears even if error happens
-    }
-  }, []);
-
-  // 2. Fetch 5 multiple choice questions from any categories (mixed) with SAME token
-  const fetchQuestions = useCallback(async () => {
+  // Fetch token and questions for quiz format
+  const loadQuiz = useCallback(async () => {
     // Reset states when play again
     setLoading(true); // loading spinner while fetching
     setError(null); // clear old errors
-    setChecked(false);
+    setCheckedAns(false);
     setScore(0);
-
-    let activeToken = token;
-
-    if (!activeToken) {
-      activeToken = await fetchToken();
-    } // ensure we have a token
 
     try {
       // Small delay to prevent rapid consecutive fetches
@@ -65,54 +27,25 @@ export default function Questions({ goToStart }) {
         setTimeout(resolve, 1500);
       }); // 1.5 second delay
 
-      const questionRes = await fetch(
-        `https://opentdb.com/api.php?amount=5&type=multiple&token=${activeToken}`,
-      );
-
-      if (!questionRes.ok) {
-        throw new Error(
-          `Failed to fetch questions! status: ${questionRes.status}`,
-        );
-      }
-
-      const questionData = await questionRes.json();
+      const questionsData = await fetchQuestions(token);
 
       // Token expired, request new session token
-      if (questionData.response_code === 3) {
+      if (questionsData.response_code === 3) {
         console.log("Token expired. Fetching new token...");
-        await fetchToken(); // waits for new token (updates the state with setToken(), which fetchQuestions() uses.)
-        return fetchQuestions(); // retry after new token
+        const newToken = await fetchToken();
+        setToken(newToken);
+        return; // retry with new token, 2nd useEffect will re-run automatically
       }
 
-      // Reset session token if all questions used (token empty) so we can fetch questions again
-      if (questionData.response_code === 4) {
+      // Reset session token if all questions used (token empty) to fetch the questions again
+      if (questionsData.response_code === 4) {
         console.log("All questions used. Resetting token...");
-        await fetch(
-          `https://opentdb.com/api.php?command=reset&token=${activeToken}`,
-        ); // reset = same token refreshed, making all questions available again
-        return fetchQuestions(); // fetch again with the same token
+        await resetToken(token);
+        return loadQuiz(); // retry with same token
       }
-
-      console.log("Questions Data:", questionData);
-      /* 
-      {
-        response_code: 0,
-        results: [
-          {
-            type: "multiple",
-            difficulty: "hard",
-            category: "Art",
-            question: "",
-            correct_answer: "",
-            incorrect_answers: ["", "", ""],
-          },
-          {},
-        ];
-      }
-      */
 
       // Need to format each question obj into quiz format
-      const formattedQuestionsArr = questionData.results.map((questionObj) => {
+      const formattedQuestionsArr = questionsData.results.map((questionObj) => {
         return formatQuestionObj(questionObj);
       });
       console.log("Formatted Questions:", formattedQuestionsArr);
@@ -125,96 +58,44 @@ export default function Questions({ goToStart }) {
     } finally {
       setLoading(false);
     }
-  }, [token, fetchToken]);
+  }, [token]);
 
-  // On mount: fetch token
+  // Fetch token once on mount
   useEffect(() => {
-    fetchToken();
-  }, [fetchToken]);
-
-  // Fetch questions after retrieving token
-  useEffect(() => {
-    if (!token) return; // exit func
-    fetchQuestions();
-  }, [token, fetchQuestions]);
-
-  // Format individual question obj from API into quiz format + shuffle answer
-  function formatQuestionObj(questionObj) {
-    // All answers in array
-    const answersArr = [
-      {
-        id: nanoid(),
-        text: he.decode(questionObj.correct_answer),
-        isCorrect: true,
-      },
-      ...questionObj.incorrect_answers.map((incorrectAnswer) => {
-        return {
-          id: nanoid(),
-          text: he.decode(incorrectAnswer),
-          isCorrect: false,
-        };
-      }), // .map return new array which becomes nested array, then spread operator expands array items which flattens answersArr
-    ];
-
-    /*
-  answersArr: [
-    { id: "", text: "", isCorrect: true },
-    { id: "", text: "", isCorrect: false },
-    { id: "", text: "", isCorrect: false },
-    { id: "", text: "", isCorrect: false },
-  ]
-    */
-
-    // Fisher-Yates shuffle for answersArr
-    for (let i = answersArr.length - 1; i > 0; i--) {
-      // start shuffling from last index, stop at index 1, no need to swap index 0 as it's been swapped by the time i=1.
-      const j = Math.floor(Math.random() * (i + 1)); // Math.random to multiply (i+1) to include last index
-      [answersArr[i], answersArr[j]] = [answersArr[j], answersArr[i]]; // array destructuring swap
+    async function initToken() {
+      const newToken = await fetchToken();
+      setToken(newToken);
     }
 
-    const formattedQuestionObj = {
-      id: nanoid(),
-      question: he.decode(questionObj.question),
-      answers: answersArr, // shuffled answers
-      selectedAnswer: null,
-    };
+    initToken();
+  }, []);
 
-    return formattedQuestionObj;
-
-    /*
-{
-  id: "nanoid",
-  question: "What is 2+2?",
-  answers: [
-    { id: "a1", text: "3", isCorrect: false },
-    { id: "a2", text: "4", isCorrect: true },
-    ...
-  ],
-  selectedAnswer: "a2"
-}
-    */
-  }
+  // Fetch questions when token exists
+  useEffect(() => {
+    if (!token) return;
+    loadQuiz();
+  }, [token, loadQuiz]);
 
   // Handle onChange selecting an answer
-  function handleSelectAnswer(questionId, answerText) {
-    if (checked) return;
+  function handleSelectAnswer(questionId, answerId) {
+    if (checkedAns) return;
 
     setQuestions((prevArr) => {
       return prevArr.map((questionObj) => {
         return questionObj.id === questionId
-          ? { ...questionObj, selectedAnswer: answerText }
+          ? { ...questionObj, selectedAnswerId: answerId }
           : questionObj;
       }); // update value
     });
   }
 
-  // Check answers text with isCorrect boolean
+  // Check answers id with isCorrect boolean
   function checkAnswers() {
     let count = 0;
 
     questions.forEach((questionObj) => {
       const selected = questionObj.answers.find(
-        (a) => a.text === questionObj.selectedAnswer,
+        (ans) => ans.id === questionObj.selectedAnswerId,
       ); // selected = { id: "a2", text: "4", isCorrect: true }
 
       // if selected exists, then check if selected.isCorrect is true, increment count
@@ -222,22 +103,12 @@ export default function Questions({ goToStart }) {
     });
 
     setScore(count);
-    setChecked(true);
+    setCheckedAns(true);
   }
 
   // Fetch new set of questions
   function playAgain() {
-    fetchQuestions();
-  }
-
-  // Answer class for checked styling
-  function getCheckedAnswerClass(answer, question) {
-    if (!checked) return ""; // no coloring before checking
-
-    if (answer.isCorrect) return "correct-green"; // correct answers green
-    if (question.selectedAnswer === answer.text) return "wrong-red"; // user's wrong choice red
-
-    return ""; // all other unselected answers stay neutral
+    loadQuiz();
   }
 
   // Early returns
@@ -257,7 +128,7 @@ export default function Questions({ goToStart }) {
       <section>
         <div className="error-container">
           <p>{error}</p>
-          <button onClick={fetchQuestions}>Retry</button>
+          <button onClick={loadQuiz}>Retry</button>
         </div>
       </section>
     );
@@ -269,57 +140,35 @@ export default function Questions({ goToStart }) {
         <div className="questions-container">
           {questions.map((questionObj) => {
             return (
-              <div key={questionObj.id} className="question-block">
-                <h2>{questionObj.question}</h2>
-                <div className="answers">
-                  {questionObj.answers.map((answerObj) => {
-                    return (
-                      <label
-                        key={answerObj.id}
-                        // className={`answer-label ${checked ? (answer.isCorrect ? "correct-green" : questionObj.selectedAnswer === answer.text ? "wrong" : "") : ""}`}
-                        className={`answer-label ${getCheckedAnswerClass(answerObj, questionObj)}`}
-                      >
-                        <input
-                          type="radio"
-                          name={questionObj.id}
-                          value={answerObj.text}
-                          checked={
-                            questionObj.selectedAnswer === answerObj.text
-                          }
-                          onChange={() =>
-                            handleSelectAnswer(questionObj.id, answerObj.text)
-                          }
-                          disabled={checked}
-                        />
-                        <span>{answerObj.text}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
+              <QuestionCard
+                key={questionObj.id}
+                questionObj={questionObj}
+                checkedAns={checkedAns}
+                handleSelectAnswer={handleSelectAnswer}
+              />
             );
           })}
         </div>
         <div className="controls">
           <button onClick={goToStart}>Home</button>
-          {checked && (
+          {checkedAns && (
             <p>
               You scored {score}/{questions.length}!
             </p>
           )}
-          {!checked && (
-            <button onClick={fetchQuestions} disabled={loading}>
+          {!checkedAns && (
+            <button onClick={loadQuiz} disabled={loading}>
               New Questions
             </button>
           )}
           <button
-            onClick={checked ? playAgain : checkAnswers}
+            onClick={checkedAns ? playAgain : checkAnswers}
             disabled={
-              !checked &&
-              !questions.every((question) => question.selectedAnswer)
+              !checkedAns &&
+              !questions.every((questionObj) => questionObj.selectedAnswerId)
             }
           >
-            {checked ? "Play again" : "Check answers"}
+            {checkedAns ? "Play again" : "Check answers"}
           </button>
         </div>
       </section>

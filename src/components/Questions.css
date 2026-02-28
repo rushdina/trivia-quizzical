@@ -21,3 +21,11 @@
     transform: rotate(360deg);
   }
 }
+
+.correct-answer {
+  background-color: green;
+}
+
+.wrong-selected {
+  background-color: red;
+}
