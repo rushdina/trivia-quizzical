@@ -1,6 +1,9 @@
 export default function AnswerOption({
-  answerObj,
-  questionObj,
+  answerId,
+  answerIsCorrect,
+  answerText,
+  questionId,
+  questionSelectedAnswerId,
   checkedAns,
   handleSelectAnswer,
 }) {
@@ -8,27 +11,24 @@ export default function AnswerOption({
   function getCheckedAnswerClass() {
     if (!checkedAns) return ""; // no coloring before checking
 
-    if (answerObj.isCorrect) return "correct-answer";
-    if (questionObj.selectedAnswerId === answerObj.id) return "wrong-selected";
+    if (answerIsCorrect) return "correct-answer";
+    if (questionSelectedAnswerId === answerId) return "wrong-selected";
 
     return ""; // all other unselected answers stay neutral
   }
 
   return (
     <>
-      <label
-        key={answerObj.id}
-        className={`answer-label ${getCheckedAnswerClass()}`}
-      >
+      <label className={`answer-label ${getCheckedAnswerClass()}`}>
         <input
           type="radio"
-          name={questionObj.id}
-          value={answerObj.text}
-          checked={questionObj.selectedAnswerId === answerObj.id}
-          onChange={() => handleSelectAnswer(questionObj.id, answerObj.id)}
+          name={questionId}
+          value={answerText}
+          checked={questionSelectedAnswerId === answerId}
+          onChange={() => handleSelectAnswer(questionId, answerId)}
           disabled={checkedAns}
         />
-        <span>{answerObj.text}</span>
+        <span>{answerText}</span>
       </label>
     </>
   );

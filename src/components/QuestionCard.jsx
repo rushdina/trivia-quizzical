@@ -7,15 +7,18 @@ export default function QuestionCard({
 }) {
   return (
     <>
-      <div key={questionObj.id} className="question-card">
+      <div className="question-card">
         <h2>{questionObj.question}</h2>
         <div className="answers">
           {questionObj.answers.map((answerObj) => {
             return (
               <AnswerOption
                 key={answerObj.id}
-                answerObj={answerObj}
-                questionObj={questionObj}
+                answerId={answerObj.id}
+                answerIsCorrect={answerObj.isCorrect}
+                answerText={answerObj.text}
+                questionId={questionObj.id}
+                questionSelectedAnswerId={questionObj.selectedAnswerId}
                 checkedAns={checkedAns}
                 handleSelectAnswer={handleSelectAnswer}
               ></AnswerOption>
