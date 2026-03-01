@@ -4,7 +4,7 @@ import { fetchToken, resetToken, fetchQuestions } from "../api/triviaAPI.js";
 import { formatQuestionObj } from "../utils/formatQuestion.js";
 import "./Questions.css";
 
-export default function Questions({ goToStart }) {
+export default function Questions() {
   const [token, setToken] = useState(null);
   const [questions, setQuestions] = useState([]); // array of qns obj
   const [checkedAns, setCheckedAns] = useState(false);
@@ -24,8 +24,8 @@ export default function Questions({ goToStart }) {
       // Small delay to prevent rapid consecutive fetches
       await new Promise((resolve) => {
         console.log("Fetching questions...");
-        setTimeout(resolve, 1500);
-      }); // 1.5 second delay
+        setTimeout(resolve, 1000);
+      }); // 1 second delay
 
       const questionsData = await fetchQuestions(token);
 
@@ -34,7 +34,7 @@ export default function Questions({ goToStart }) {
         console.log("Token expired. Fetching new token...");
         const newToken = await fetchToken();
         setToken(newToken);
-        return; // retry with new token, 2nd useEffect will re-run automatically
+        return; // 2nd useEffect will re-run automatically when token state is updated
       }
 
       // Reset session token if all questions used (token empty) to fetch the questions again
@@ -48,10 +48,9 @@ export default function Questions({ goToStart }) {
       const formattedQuestionsArr = questionsData.results.map((questionObj) => {
         return formatQuestionObj(questionObj);
       });
+
       console.log("Formatted Questions:", formattedQuestionsArr);
       setQuestions(formattedQuestionsArr);
-
-      // setQuestions(formattedQuestions);
     } catch (error) {
       console.error(error);
       setError("Something went wrong. Please try again after a few seconds.");
@@ -60,7 +59,7 @@ export default function Questions({ goToStart }) {
     }
   }, [token]);
 
-  // Fetch token once on mount
+  // 1. Fetch token once on mount
   useEffect(() => {
     async function initToken() {
       const newToken = await fetchToken();
@@ -70,7 +69,7 @@ export default function Questions({ goToStart }) {
     initToken();
   }, []);
 
-  // Fetch questions when token exists
+  // 2. Fetch questions when token state is updated
   useEffect(() => {
     if (!token) return;
     loadQuiz();
@@ -89,16 +88,16 @@ export default function Questions({ goToStart }) {
     });
   }
 
-  // Check answers id with isCorrect boolean
+  // Check selectedAnswersId with isCorrect boolean
   function checkAnswers() {
     let count = 0;
 
     questions.forEach((questionObj) => {
       const selected = questionObj.answers.find(
         (ans) => ans.id === questionObj.selectedAnswerId,
-      ); // selected = { id: "a2", text: "4", isCorrect: true }
+      ); // selected = { id: "...", text: "...", isCorrect: true }
 
-      // if selected exists, then check if selected.isCorrect is true, increment count
+      // Increment score count if selected.isCorrect is true
       if (selected?.isCorrect) count++;
     });
 
@@ -114,23 +113,27 @@ export default function Questions({ goToStart }) {
   // Early returns
   if (loading) {
     return (
-      <section>
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Loading questions...</p>
-        </div>
-      </section>
+      <>
+        <section>
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Loading questions...</p>
+          </div>
+        </section>
+      </>
     );
   }
 
   if (error) {
     return (
-      <section>
-        <div className="error-container">
-          <p>{error}</p>
-          <button onClick={loadQuiz}>Retry</button>
-        </div>
-      </section>
+      <>
+        <section>
+          <div className="error-container">
+            <p>{error}</p>
+            <button onClick={loadQuiz}>Retry</button>
+          </div>
+        </section>
+      </>
     );
   }
 
@@ -150,18 +153,18 @@ export default function Questions({ goToStart }) {
           })}
         </div>
         <div className="controls">
-          <button onClick={goToStart}>Home</button>
           {checkedAns && (
-            <p>
-              You scored {score}/{questions.length}!
+            <p className="score-message">
+              You scored {score}/{questions.length} correct answers!
             </p>
           )}
           {!checkedAns && (
             <button onClick={loadQuiz} disabled={loading}>
-              New Questions
+              New Quiz
             </button>
           )}
           <button
+            className="checkAns-btn"
             onClick={checkedAns ? playAgain : checkAnswers}
             disabled={
               !checkedAns &&

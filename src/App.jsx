@@ -6,28 +6,22 @@ import "./App.css";
 function App() {
   const [page, setPage] = useState("start");
 
-  function goToQuestions() {
-    setPage("questions");
-  }
-
-  function goToStart() {
-    setPage("start");
-  }
-
   return (
     <>
-      <header
-        className={page === "start" ? "header-start" : "header-questions"}
-      >
-        <h1>Quizzical</h1>
-      </header>
+      {page === "questions" && (
+        <header className="questions-header">
+          <h1>Quizzical</h1>
+        </header>
+      )}
 
-      <main>
-        {page === "start" && <Start goToQuestions={goToQuestions} />}
-        {page === "questions" && <Questions goToStart={goToStart} />}
+      <main className={page === "questions" ? "questions-main" : ""}>
+        {page === "start" && (
+          <Start goToQuestions={() => setPage("questions")} />
+        )}
+        {page === "questions" && <Questions />}
       </main>
 
-      <footer>Scrimba Solo Project Quizzical</footer>
+      {page === "questions" && <footer>Scrimba Solo Project Quizzical</footer>}
     </>
   );
 }

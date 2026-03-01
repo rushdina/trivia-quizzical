@@ -19,7 +19,7 @@ export default function AnswerOption({
 
   return (
     <>
-      <label className={`answer-label ${getCheckedAnswerClass()}`}>
+      <label className={`answer-option ${getCheckedAnswerClass()}`}>
         <input
           type="radio"
           name={questionId}
@@ -28,7 +28,7 @@ export default function AnswerOption({
           onChange={() => handleSelectAnswer(questionId, answerId)}
           disabled={checkedAns}
         />
-        <span>{answerText}</span>
+        <span className="option-btn">{answerText}</span>
       </label>
     </>
   );

@@ -1,8 +1,97 @@
-.loading-container {
+.questions-header h1 {
+  font-size: 2rem;
+  margin-top: 1.5rem;
+}
+
+.question-card {
+  text-align: left;
+  border-bottom: 2px solid #d6dbf5;
+  padding-bottom: 1.5rem;
+}
+
+.question-card h2 {
+  font-size: 1.125rem;
+  padding-bottom: 1rem;
+}
+
+.question-card:not(:first-child) {
+  padding-top: 1.5rem;
+}
+
+.answers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.answer-option input[type="radio"] {
+  display: none; /* remove radio circle */
+}
+
+.option-btn {
+  display: inline-block;
+  padding: 0.25rem 1.2rem;
+  border: 2px solid #4d5b9e;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.option-btn:hover,
+.answer-option input:checked + .option-btn {
+  border-color: #d6dbf5;
+  background-color: #d6dbf5;
+}
+
+/* Correct answer = green */
+.answer-option.correct-answer input:checked + .option-btn,
+.answer-option.correct-answer .option-btn {
+  background-color: #4caf50;
+  border-color: #4caf50;
+  color: white;
+}
+
+/* Wrong selected answer = red */
+.answer-option.wrong-selected input:checked + .option-btn {
+  background-color: #f44336;
+  border-color: #f44336;
+  color: white;
+}
+
+/* Correct / wrong answers: remain full opacity */
+.answer-option.correct-answer input:disabled + .option-btn,
+.answer-option.wrong-selected input:disabled + .option-btn {
+  opacity: 1;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Other answers (unselected, disabled): low opacity */
+.answer-option input:disabled:not(:checked) + .option-btn {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none; /* prevent hover effects */
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.score-message {
+  font-weight: bold;
+  font-size: 1.125rem;
+}
+
+.loading-container,
+.error-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1rem;
   height: 50vh;
 }
 
@@ -22,10 +111,19 @@
   }
 }
 
-.correct-answer {
-  background-color: green;
+@media (max-width: 380px) {
+  .controls {
+    flex-direction: column;
+    gap: 1rem;
+  }
 }
 
-.wrong-selected {
-  background-color: red;
+@media (prefers-color-scheme: dark) {
+  .option-btn:hover,
+  .answer-option input:checked + .option-btn {
+    color: #293264;
+  }
+  .spinner {
+    border-top-color: #5669c9;
+  }
 }
