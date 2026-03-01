@@ -1,0 +1,22 @@
+.start-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  padding-inline: 2rem;
+}
+
+.start-wrapper p {
+  font-size: 1.25rem;
+}
+
+.start-wrapper p,
+.start-wrapper button {
+  margin-top: 2rem;
+}
+
+.start-wrapper button {
+  font-size: 1.25rem;
+  padding: 1rem 2rem;
+}
