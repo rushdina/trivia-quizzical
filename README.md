@@ -6,9 +6,9 @@ A multiple-choice quiz solo project from the [Scrimba Frontend Developer Career 
 
 🔗 Live Demo: https://scrimba-quizzical-rushdina.vercel.app/
 
-![Quizzical Start Page Preview](assets/preview/preview-quizzical-start.png)
-![Quizzical Questions Page Preview](assets/preview/preview-quizzical-questions.png)
-![Quizzical Checked Answers Page Preview](assets/preview/preview-quizzical-checkedAnswers.png)
+![Quizzical Start Page Preview](./src/assets/preview/preview-quizzical-start.png)
+![Quizzical Questions Page Preview](./src/assets/preview/preview-quizzical-questions.png)
+![Quizzical Checked Answers Page Preview](./src/assets/preview/preview-quizzical-checkedAnswers.png)
 
 ## 🛠️ Technologies Used
 
@@ -61,18 +61,19 @@ npm run dev
 
 ## 🧠 Challenges Encountered
 
-- **Handling API tokens & limits**: Tokens expired or ran out, causing errors. Rapid consecutive requests also triggered `429 Too Many Requests`.
-  - Resolution: Implemented a workflow to fetch a new token when expired, reset token when all questions were used, and added a small delay (1 second) before each fetch to avoid hitting rate limits.
-- **State Management**: : Coordinating multiple state variables while avoiding unnecessary re-renders and stale values.
-  - Resolution: Structured `useEffect` with proper dependencies and passed the token explicitly to async fetch functions.
-- **Shuffling and Formatting Questions**: API responses needed consistent formatting, and answers had to be shuffled while ensuring React re-renders correctly.
-  - Resolution: Created a formatting function that applied `Fisher-Yates shuffle` and mapped the API response into a reusable structure for the component.
-- **Check Answers**: Verify selected answers with the correct ones.
-  - Resolution: Iterates through all questions, finds the selected answer object, and checks its `isCorrect` property to calculate the score.
-- **Refactor**: `Questions.jsx` component was handling too many responsibilities (fetching API data, managing tokens, formatting questions, and rendering UI). Hard to maintain.
-  - Resolution: Split API fetching, formatting, and UI into separate api, utils, and reusable components respectively.
-  
+- **API Tokens & Rate Limits**: Empty/expired tokens and rapid requests caused errors (`429`).
+  - Solution: Automatically fetched a new token, reset after all questions are used, and added a 1-second delay between requests.
+- **State Management**: Avoided unnecessary re-renders and stale values with multiple state variables.
+  - Solution: Structured `useEffect` with proper dependencies and passed token explicitly to async fetches.
+- **Shuffling and Formatting Questions**: API responses needed consistent formatting, and answers had to be shuffled.
+  - Solution: Created a reusable function with `Fisher-Yates shuffle` to format questions.
+- **Check Answers**: Verify selected answers against correct ones.
+  - Solution: Iterates through all questions, finds the selected answer object, and checks its `isCorrect` property to calculate the score.
+- **Refactor**: `Questions.jsx` handled too many responsibilities. Hard to maintain.
+  - Solution: Split logic into `api`, `utils`, and reusable UI components.
+
 ## 📚 What I Learned
+
 - Managing multiple React states and async operations.
 - Managing API tokens, rate limits, and error recovery.
 - Formatting and shuffling API data for dynamic UI updates.
