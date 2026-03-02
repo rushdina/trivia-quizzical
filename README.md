@@ -1,10 +1,10 @@
 # ❓ Trivia Quizzical
 
-A multiple-choice quiz solo project from the [Scrimba Frontend Developer Career Path](https://scrimba.com/frontend-path-c0j). This app fetches multiple-choice questions from the **Open Trivia Database API**, allowing users to select answers, check their score, and play multiple rounds without repeating questions. Answers are shuffled, correct and incorrect selections are highlighted, and the app handles token expiration for a smooth quiz experience.
+A multiple-choice quiz app that fetches multiple-choice questions from the `Open Trivia Database API`, allowing users to select answers, check their score, and play multiple rounds without repeating questions. Answers are shuffled, correct and incorrect selections are highlighted, and the app handles token expiration for a smooth quiz experience.
 
 ## 🖼️ Preview
 
-🔗 Live Demo: https://scrimba-quizzical-rushdina.vercel.app/
+🔗 Live Demo: https://trivia-quizzical-rushdina.vercel.app/ 
 
 ![Quizzical Start Page Preview](./src/assets/preview/preview-quizzical-start.png)
 ![Quizzical Questions Page Preview](./src/assets/preview/preview-quizzical-questions.png)
@@ -20,13 +20,13 @@ A multiple-choice quiz solo project from the [Scrimba Frontend Developer Career 
 
 ## ✨ Features
 
-- Fetches random multiple-choice mixed-category questions from the Open Trivia Database API.
-- Shuffles answer options are randomized to make each quiz unique.
-- Calculates and displays user score after checking answers.
-- Handles session tokens to avoid duplicate questions and expired tokens.
-- Reset and play a new set of questions anytime.
-- Responsive, user-friendly UI with loading state and error handling.
-- Decodes HTML entities in questions and answers using the `he` package.
+- Fetches random multiple-choice mixed-category questions from the `Open Trivia Database API`
+- Shuffles answer options are randomized to make each quiz unique
+- Calculates and displays user score after checking answers
+- Handles session tokens to avoid duplicate questions and expired tokens
+- Reset and play a new set of questions anytime
+- Responsive, user-friendly UI with loading state and error handling
+- Decodes HTML entities in questions and answers using the `he` package
 
 ## ⚡ How to Run Locally
 
@@ -74,11 +74,11 @@ npm run dev
 
 ## 📚 What I Learned
 
-- Managing multiple React states and async operations.
-- Managing API tokens, rate limits, and error recovery.
-- Formatting and shuffling API data for dynamic UI updates.
-- Handling user interactions like “Check Answers” reliably.
-- Structuring React components for readability and reusability.
+- Managing multiple React states and async operations
+- Managing API tokens, rate limits, and error recovery
+- Formatting and shuffling API data for dynamic UI updates
+- Handling user interactions like “Check Answers” reliably
+- Structuring React components for readability and reusability
 
 ## 💡 Future Improvements
 
@@ -87,5 +87,5 @@ npm run dev
 
 ## 🙌 Acknowledgements
 
-- **Scrimba course:** [Scrimba Frontend Developer Career Path](https://scrimba.com/frontend-path-c0j)
-- **Design reference:** [Figma by Scrimba](https://www.figma.com/design/E9S5iPcm10f0RIHK8mCqKL/Quizzical-App?node-id=8-448&t=1PTwhDp6TAwDlrhX-0)
+- Solo project from [Scrimba Frontend Developer Career Path](https://scrimba.com/frontend-path-c0j)
+- Design reference from [Figma by Scrimba](https://www.figma.com/design/E9S5iPcm10f0RIHK8mCqKL/Quizzical-App?node-id=8-448&t=1PTwhDp6TAwDlrhX-0)
