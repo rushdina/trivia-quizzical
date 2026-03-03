@@ -21,11 +21,14 @@ export default function Questions() {
     setScore(0);
 
     try {
-      // Small delay to prevent rapid consecutive fetches
-      await new Promise((resolve) => {
-        console.log("Fetching questions...");
-        setTimeout(resolve, 1000);
-      }); // 1 second delay
+      // Small delay to prevent rapid consecutive fetches (UX)
+      // 1 second delay
+      if (import.meta.env.MODE !== "test") {
+        await new Promise((resolve) => {
+          console.log("Fetching questions...");
+          setTimeout(resolve, 1000);
+        });
+      }
 
       const questionsData = await fetchQuestions(token);
 
