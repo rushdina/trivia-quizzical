@@ -1,4 +1,4 @@
-# ❓ Trivia Quizzical
+# ❓ Trivia Quiz App
 
 A multiple-choice quiz app that fetches multiple-choice questions from the `Open Trivia Database API`, allowing users to select answers, check their score, and play multiple rounds without repeating questions. Answers are shuffled, correct and incorrect selections are highlighted, and the app handles token expiration for a smooth quiz experience.
 
