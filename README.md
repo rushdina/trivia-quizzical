@@ -2,9 +2,8 @@
 
 A multiple-choice quiz app that fetches multiple-choice questions from the `Open Trivia Database API`, allowing users to select answers, check their score, and play multiple rounds without repeating questions. Answers are shuffled, correct and incorrect selections are highlighted, and the app handles token expiration for a smooth quiz experience.
 
-## 🖼️ Preview
-
-🔗 Live Demo: https://trivia-quiz-rushdina.vercel.app/ 
+## 🌐 Live Demo
+🔗 View app: https://trivia-quiz-rushdina.vercel.app/ 
 
 ![Quizzical Start Page Preview](./src/assets/preview/preview-quizzical-start.png)
 ![Quizzical Questions Page Preview](./src/assets/preview/preview-quizzical-questions.png)
